@@ -4,8 +4,11 @@ class DeviceManager:
         self.devices = []
         self.selected_devices = set()
         
-    def load_devices(self, network_id):
-        self.devices = self.meraki_service.get_devices(network_id)
+    async def load_devices(self, network_ids):
+        self.devices = []
+        for network_id in network_ids:
+            network_devices = await self.meraki_service.get_devices_async(network_id)
+            self.devices.extend(network_devices)
         self.selected_devices.clear()
         return self.devices
     

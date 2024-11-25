@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 from tkinter import ttk
 from .components.api_key_dialog import ApiKeyDialog
@@ -6,6 +7,7 @@ from src.services.meraki_service import MerakiService
 from src.services.device_manager import DeviceManager
 from .components.devices_tab import DevicesTab
 from .components.clients_tab import ClientsTab
+from .components.progress_dialog import ProgressDialog
 
 class MerakiApp:
     def __init__(self):
@@ -14,9 +16,9 @@ class MerakiApp:
         self.root.geometry("800x600")
         
         self.meraki_service = MerakiService()
-        self.init_ui()
+        asyncio.run(self.init_ui_async())
 
-    def init_ui(self):
+    async def init_ui_async(self):
         # First prompt for API key
         api_key_dialog = ApiKeyDialog(self.root)
         api_key = api_key_dialog.get_api_key()
@@ -25,7 +27,7 @@ class MerakiApp:
             self.root.quit()
             return
             
-        self.meraki_service.set_api_key(api_key)
+        await self.meraki_service.set_api_key(api_key)
         
         # Create device manager
         self.device_manager = DeviceManager(self.meraki_service)
@@ -51,9 +53,25 @@ class MerakiApp:
 
     def on_network_selected(self, event):
         network_id = event.data['network_id']
-        self.devices_tab.load_devices(network_id)
-        self.clients_tab.current_network_id = network_id
-        self.clients_tab.load_clients(network_id)
+        network_ids = event.data['network_ids']
+        
+        async def load_data():
+            progress = ProgressDialog(self.root, "Loading Data")
+            try:
+                # Load devices
+                devices = await self.device_manager.load_devices(network_ids)
+                self.devices_tab.load_devices(devices)
+
+                # Load clients if specific network selected
+                if network_id != 'all':
+                    progress.update_progress(50, "Loading clients...")
+                    self.clients_tab.current_network_id = network_id
+                    clients = await self.meraki_service.get_clients_async(network_id)
+                    self.clients_tab.load_clients(clients)
+            finally:
+                progress.destroy()
+
+        asyncio.run(load_data())
 
     def run(self):
         self.root.mainloop() 
