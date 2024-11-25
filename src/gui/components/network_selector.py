@@ -20,6 +20,19 @@ class NetworkSelector(ttk.Frame):
         networks = self.meraki_service.get_networks()
         self.network_combo['values'] = [n['name'] for n in networks]
         
+        # Add callback for network selection
+        self.network_combo.bind('<<ComboboxSelected>>', self.on_network_selected)
+        
+        # Store network data
+        self.networks = self.meraki_service.get_networks()
+        self.network_combo['values'] = [n['name'] for n in self.networks]
+        
         # Layout
         ttk.Label(self, text="Select Network:").pack(pady=5)
         self.network_combo.pack(pady=5) 
+
+    def on_network_selected(self, event):
+        selected_index = self.network_combo.current()
+        if selected_index >= 0:
+            network_id = self.networks[selected_index]['id']
+            self.event_generate('<<NetworkSelected>>', data={'network_id': network_id})

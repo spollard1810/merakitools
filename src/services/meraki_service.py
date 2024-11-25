@@ -24,4 +24,25 @@ class MerakiService:
                 self.organization_id
             )
         except:
+            return []
+
+    def get_devices(self, network_id):
+        if not self.dashboard:
+            return []
+        try:
+            return self.dashboard.networks.getNetworkDevices(network_id)
+        except:
+            return []
+
+    def get_clients(self, network_id, timespan=2592000):  # Default to 30 days
+        if not self.dashboard:
+            return []
+        try:
+            return self.dashboard.networks.getNetworkClients(
+                network_id,
+                timespan=timespan,
+                perPage=1000,  # Adjust as needed
+                total_pages='all'
+            )
+        except:
             return [] 
